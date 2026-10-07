@@ -984,14 +984,14 @@ void TWPartitionManager::Decrypt_Data() {
 //			}
 		}
 	}
-	if (Decrypt_Data && !Decrypt_Data->Is_Encrypted) {
-	#ifdef TW_POST_DECRYPT_MODULES
-	    if (!android::base::GetBoolProperty("post.decrypt.modules", false))
-	    KernelModuleLoader::Load_Post_Decrypt_Modules();
-	#endif
-	}
-	if (Decrypt_Data && (!Decrypt_Data->Is_Encrypted || Decrypt_Data->Is_Decrypted)) {
-		Decrypt_Adopted();
+    if (Decrypt_Data && (!Decrypt_Data->Is_Encrypted || Decrypt_Data->Is_Decrypted)) {
+    #ifdef TW_POST_DECRYPT_MODULES
+	    if (!android::base::GetBoolProperty("post.decrypt.modules", false)) {
+            LOGINFO("Storage is ready, loading late modules now.\n");
+            KernelModuleLoader::Load_Post_Decrypt_Modules();
+		}
+    #endif
+	Decrypt_Adopted();
 	}
 #endif
 }
