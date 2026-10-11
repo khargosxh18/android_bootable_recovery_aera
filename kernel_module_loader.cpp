@@ -205,6 +205,7 @@ bool KernelModuleLoader::Load_Post_Decrypt_Modules() {
 		LOGINFO("failed to get loaded kernel modules before post-decrypt load\n");
 
 	int modules_loaded = 0;
+	int failed = 0;
 
 	for (const auto& mod : post_decrypt_modules_requested) {
 		bool already_loaded = false;
@@ -224,6 +225,7 @@ bool KernelModuleLoader::Load_Post_Decrypt_Modules() {
 		std::string full_path = post_decrypt_stage_dir + "/" + mod;
 		if (!TWFunc::Path_Exists(full_path)) {
 			LOGINFO("Post-decrypt staged module missing: %s\n", full_path.c_str());
+			failed++;
 			continue;
 		}
 
@@ -236,12 +238,17 @@ bool KernelModuleLoader::Load_Post_Decrypt_Modules() {
 			modules_loaded++;
 		} else {
 			LOGINFO("Post-decrypt module failed to load: %s (rc=%d)\n", mod.c_str(), rc);
+			failed++;
 		}
 	}
 
-	LOGINFO("Loaded %d post-decrypt modules\n", modules_loaded);
-	property_set("post.decrypt.modules", "true");
-	return true;
+	LOGINFO("Loaded %d post-decrypt modules, %d failed\n", modules_loaded, failed);
+
+	/* Only mark done when everything loaded, so later call sites can retry */
+	if (failed == 0)
+		property_set("post.decrypt.modules", "true");
+
+	return failed == 0;
 }
 
 bool KernelModuleLoader::Load_Vendor_Modules() {
