@@ -50,6 +50,10 @@ extern "C" {
 #include "twcommon.h"
 #include "twrp-functions.hpp"
 #include "data.hpp"
+#include <android-base/properties.h>
+#ifdef TW_POST_DECRYPT_MODULES
+#include "kernel_module_loader.hpp"
+#endif
 
 #include "partitions.hpp"
 #ifdef __ANDROID_API_N__
@@ -282,6 +286,15 @@ static void process_recovery_mode(twrpAdbBuFifo* adb_bu_fifo,
 	android::keystore::copySqliteDb();
 #endif
 	Decrypt_Page(skip_decryption, datamedia);
+
+#ifdef TW_POST_DECRYPT_MODULES
+	// Unencrypted devices never reach Post_Decrypt(), so load late modules here
+	if (!PartitionManager.Storage_Is_Encrypted() &&
+	    !android::base::GetBoolProperty("post.decrypt.modules", false)) {
+		LOGINFO("Unencrypted storage, loading post-decrypt modules\n");
+		KernelModuleLoader::Load_Post_Decrypt_Modules();
+	}
+#endif
 
 	// Check for and load custom theme if present
 	TWFunc::check_selinux_support();
